@@ -40,3 +40,4 @@ Thumbs.db
 
 #directorios q no deberian xd
 bin/
+obj/
