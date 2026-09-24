@@ -1,0 +1,88 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Etiquetadora.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="clr-namespace:Etiquetadora.Models"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        Width="800" Height="600" CanResize="False"
+        x:Class="Etiquetadora.Views.MainView"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/logo.ico"
+        Title="Etiquetadora">
+    
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainViewModel />
+    </Design.DataContext>
+    
+    <Window.Styles>
+        <Style Selector="TextBox.InvalidPrice /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#D0FF0000"></Setter>
+        </Style>
+    </Window.Styles>
+    
+    <Grid Background="{DynamicResource PrimaryBackground} " ColumnDefinitions="350,*">
+        <Border Grid.Column="0" Padding="30" Background="MediumPurple">
+            <Grid>
+                <StackPanel VerticalAlignment="Top" Spacing="24">
+                    <TextBlock Text="Generadora de Etiquetas :)" FontSize="22"></TextBlock>
+                    <TextBox Text="{Binding ProductName}" 
+                             PlaceholderText="Nombre del producto"
+                             Background="{DynamicResource TextControlBackground}"
+                             TextChanging="PreviewBarcode">
+                    </TextBox>
+                    <TextBox Text="{Binding ProductPrice, Mode=TwoWay}" 
+                             PlaceholderText="Precio"
+                             Classes.InvalidPrice="{Binding IsPriceInvalid}"
+                             TextChanging="PreviewBarcode">
+                    </TextBox>
+
+                    <Grid RowDefinitions="28,*" Margin="0,-8,0,0">
+                        <CheckBox Grid.Row="0" 
+                                  Name="SKUCheckbox" 
+                                  Content="Autogenerar SKU?"
+                                  IsEnabled="True">
+                        </CheckBox>
+                        <TextBox Grid.Row="1" 
+                                 IsEnabled="{Binding !#SKUCheckbox.IsChecked}" 
+                                 Text="{Binding ProductSku}" 
+                                 PlaceholderText="SKU (máximo 12 números)" 
+                                 MaxLength="12"
+                                 TextChanging="PreviewBarcode">
+                        </TextBox>
+                    </Grid>
+                </StackPanel>
+                
+                <StackPanel Spacing="30" VerticalAlignment="Bottom">
+                    <Button Content="Regenerar etiqueta" Command="{Binding PreviewBarcode}"></Button>
+                    <Button Content="Borrar datos" HorizontalAlignment="Stretch" Command="{Binding NewLabelCommand}"></Button>
+                    <Button Content="Listado etiquetas creadas" HorizontalAlignment="Stretch"></Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <TextBlock Grid.Column="1" Text="Vista previa de la etiqueta" 
+                   FontSize="14"
+                   Margin="0"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Top"/>
+        
+        <Border Grid.Column="1" Padding="30" >
+            <Grid RowDefinitions="Auto,Auto,*, *">
+                <TextBlock Text="{Binding TemporalPreset.TagWidth, StringFormat='{}{0} mm'}"
+                           HorizontalAlignment="Center"
+                           Grid.Row="1"
+                           Foreground="White"/>
+                <Image Source="{Binding BarcodeSvg}"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center"
+                       Stretch="Uniform"
+                       Grid.Row="2"
+                       />
+                <Button Grid.Row="3" HorizontalAlignment="Right" VerticalAlignment="Bottom" Content="Guardar etiqueta"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
