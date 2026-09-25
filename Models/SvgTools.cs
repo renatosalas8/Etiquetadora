@@ -3,18 +3,16 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Linq;
-using System.Xml.Schema;
 using Avalonia.Svg.Skia;
 using Barcoder.Code128;
-using Barcoder.Renderer.Svg;
-using Microsoft.IO;
 
 namespace Etiquetadora.Models;
 
-public abstract class SvgTools
+public class SvgTools
 {
-    public static SvgSource RenderTag(string barcodeValue, string productPrice, string productName, PresetAttributes settings)
+    public SvgSource RenderTag(string barcodeValue, string productPrice, string productName, PresetAttributes settings)
     {
         XNamespace ns = "http://www.w3.org/2000/svg";
         var original = XDocument.Parse(CreateSvgBarcode(barcodeValue));
@@ -53,7 +51,7 @@ public abstract class SvgTools
             new XAttribute("stroke-linecap", originalRoot.Attribute("stroke-linecap")?.Value ?? "butt"),
             lines);
         
-        //todo barcode
+        // ---- todo barcode logic
         var barcode = new XElement(ns + "g",
             new XAttribute("id", "barcode"),
             new XElement(ns + "rect",
@@ -63,7 +61,7 @@ public abstract class SvgTools
                 new XAttribute("height", barcodeHeight.ToString(CultureInfo.InvariantCulture)+"mm"),
                 new XAttribute("fill", "#000000")));
 
-        // fondo etiqueta
+        // ---- fondo etiqueta
         var background = new XElement(ns + "g",
             new XAttribute("id", "barcode_background"),
             new XElement(ns + "rect",
@@ -73,7 +71,7 @@ public abstract class SvgTools
                 new XAttribute("height", "100%"),
                 new XAttribute("fill", "#FFFFFF")));
 
-        //precio
+        // ---- precio
         var price = new XElement(ns + "g",
             new XAttribute("id", "price"),
             new XElement(ns + "text",
@@ -84,7 +82,7 @@ public abstract class SvgTools
                 new XAttribute("font-size", 8),
                 new XAttribute("text-anchor", "middle")));
         
-        //nombre del producto
+        // ---- nombre del producto
         var name = new XElement(ns+"g",
             new XAttribute("id", "name"),
             new XElement(ns + "text",
@@ -114,22 +112,25 @@ public abstract class SvgTools
         return SvgSource.LoadFromSvg(svg);
     }
 
-    private static string CreateSvgBarcode(string barcode)
+    private string CreateSvgBarcode(string barcode)
     {
         try
         {
-            var barcodeResult = Code128Encoder.Encode(barcode);
-            var renderer = new SvgRenderer(new SvgRendererOptions
+            var barcoded = Code128Encoder.Encode(barcode);
+            using (var stream = new MemoryStream())
             {
-                CustomMargin = 0 //default: 10
-            });
-            var stream = new MemoryStream();
-            using var reader = new StreamReader(stream);
-            renderer.Render(barcodeResult, stream);
-            stream.Position = 0;
-            var svg = reader.ReadToEnd();
-            Debug.WriteLine($"BARCODE SVG:\n{svg}");
-            return svg;
+                var renderer = new BarcodeRenderer();
+                renderer.Render(barcoded, stream);
+                
+                stream.Position = 0;
+
+                using (var reader = new StreamReader(stream))
+                {
+                    var svg = reader.ReadToEnd();
+                    Debug.WriteLine($"BARCODE SVG:\n{svg}");
+                    return svg;
+                }
+            }
         }
         catch (Exception exception)
         {

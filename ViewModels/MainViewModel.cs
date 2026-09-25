@@ -89,7 +89,9 @@ public partial class MainViewModel : ViewModelBase
 
             if (IsPriceInvalid == false)
             {
-                var render = await Task.Run(() => SvgTools.RenderTag(ProductSku!, ProductPrice, ProductName, _currentPreset));
+                var renderer = new SvgTools();
+                
+                var render = renderer.RenderTag(ProductSku!, ProductPrice, ProductName, _currentPreset);
                 BarcodeSvg = new SvgImage { Source = render };
             }
         }
