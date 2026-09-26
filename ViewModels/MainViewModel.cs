@@ -91,13 +91,13 @@ public partial class MainViewModel : ViewModelBase
             {
                 var renderer = new SvgTools();
                 
-                var render = renderer.RenderTag(ProductSku!, ProductPrice, ProductName, _currentPreset);
+                var render = renderer.RenderTag(ProductSku, ProductPrice, ProductName, _currentPreset);
                 BarcodeSvg = new SvgImage { Source = render };
             }
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"error during preview barcode: {ex}");
+            Debug.WriteLine($"MAINVIEWMODEL -> error during preview barcode: {ex}");
         }
     }
 
