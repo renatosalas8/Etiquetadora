@@ -3,12 +3,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using Avalonia.Svg.Skia;
 using Barcoder.Code128;
-using SkiaSharp;
-using SvgLib;
 
 namespace Etiquetadora.Models;
 
@@ -16,54 +13,16 @@ public class SvgTools
 {
     private const double MmPerPixel = 3.7795;
     private static readonly XNamespace ns = "http://www.w3.org/2000/svg";
-    private double barcodeWidth;
+    private static double _barcodeWidth;
 
-    public SvgSource RenderTag(string barcodeValue, string productPrice, string productName, PresetAttributes settings)
+    public static string RenderTag(string barcodeValue, string productPrice, string productName, PresetAttributes preset)
     {
-        
-        // var original = XDocument.Parse(CreateSvgBarcode(barcodeValue));
-        // var originalRoot = original.Root!;
-        //
-        // // Extraer el viewBox original para saber las dimensiones "naturales" del barcode
-        // var vb = originalRoot.Attribute("viewBox")!.Value.Split(' ');
-        // var origWidth = double.Parse(vb[2], CultureInfo.InvariantCulture);
-        // var origHeight = double.Parse(vb[3], CultureInfo.InvariantCulture);
-        //
-        // var barcodeWidth = settings.TagWidth - 2 * settings.SideMargin;
-        // var barcodeHeight = 9; //TODO verificar que se pueda cambiar la altura del codigo de barras
-        // // Si no se especifica tamaño del barcode, usa su tamaño natural
-        // double targetBarcodeWidth = barcodeWidth;
-        // double targetBarcodeHeight = barcodeHeight;
-        //
-        // var scaleX = targetBarcodeWidth / origWidth;
-        // double scaleY = targetBarcodeHeight / origHeight;
-        //
-        // // Tomamos todos los <line> del original
-        // var lines = originalRoot.Elements(ns + "line").ToList();
-        //
-        // // Grupo 'barcode': mismas líneas, con transform de escala + posición
-        // var barcodeX = (settings.TagWidth - barcodeWidth)/2;
-        // var barcodeY = settings.TagHeight - barcodeHeight - settings.BottomMargin;
-        // var barcodeGroup = new XElement(ns + "g",
-        //     new XAttribute("id", "barcode"),
-        //     new XAttribute("transform",
-        //         $"translate({barcodeX.ToString(CultureInfo.InvariantCulture)}," +
-        //         $"{barcodeY.ToString(CultureInfo.InvariantCulture)}) " +
-        //         $"scale({scaleX.ToString(CultureInfo.InvariantCulture)}," +
-        //         $"{scaleY.ToString(CultureInfo.InvariantCulture)})"),
-        //     new XAttribute("fill", originalRoot.Attribute("fill")?.Value ?? "#FFFFFF"),
-        //     new XAttribute("stroke", originalRoot.Attribute("stroke")?.Value ?? "#000000"),
-        //     new XAttribute("stroke-width", originalRoot.Attribute("stroke-width")?.Value ?? "1"),
-        //     new XAttribute("stroke-linecap", originalRoot.Attribute("stroke-linecap")?.Value ?? "butt"),
-        //     lines);
-        
-        // ---- todo barcode logic (en eso awn)
-        
+        //renderizacion y elemento de barcode
         var renderedBarcode = XDocument.Parse(CreateSvgBarcode(barcodeValue));
         var barcodeRoot = renderedBarcode.Root;
         var bars = barcodeRoot!.Elements(ns + "line").ToList();
-        var barcodeX = (settings.TagWidth*MmPerPixel-barcodeWidth)/2;
-        var barcodeY = (settings.TagHeight - settings.BarcodeHeight - settings.BottomMargin)*MmPerPixel;
+        var barcodeX = (preset.TagWidth*MmPerPixel-_barcodeWidth)/2;
+        var barcodeY = (preset.TagHeight - preset.BarcodeHeight - preset.BottomMargin)*MmPerPixel;
         Debug.WriteLine($"SVGTOOLS -> renderedBarcode.Root:\n{barcodeRoot}\n");
         var barcode = new XElement(ns + "g",
             new XAttribute("id", "barcode"),
@@ -108,11 +67,11 @@ public class SvgTools
                 new XAttribute("font-size", 12),
                 new XAttribute("text-anchor", "middle")));
 
-        // Documento final: background primero (queda atrás), barcode encima
+        // svg final
         var newRoot = new XElement(ns + "svg",
             new XAttribute("xmlns", ns.NamespaceName),
-            new XAttribute("width", settings.TagWidth.ToString(CultureInfo.InvariantCulture)+"mm"),
-            new XAttribute("height", settings.TagHeight.ToString(CultureInfo.InvariantCulture)+"mm"),
+            new XAttribute("width", preset.TagWidth.ToString(CultureInfo.InvariantCulture)+"mm"),
+            new XAttribute("height", preset.TagHeight.ToString(CultureInfo.InvariantCulture)+"mm"),
             background,
             price,
             barcode,
@@ -120,10 +79,10 @@ public class SvgTools
 
         var svg = new XDocument(newRoot).ToString();
         Debug.WriteLine($"SVGTOOLS -> finalsvg:\n{svg}");
-        return SvgSource.LoadFromSvg(svg);
+        return svg;
     }
 
-    private string CreateSvgBarcode(string barcode)
+    private static string CreateSvgBarcode(string barcode)
     {
         try
         {
@@ -131,7 +90,7 @@ public class SvgTools
             using (var stream = new MemoryStream())
             {
                 var renderer = new BarcodeRenderer();
-                renderer.Render(barcoded, stream, out barcodeWidth);
+                renderer.Render(barcoded, stream, out _barcodeWidth);
                 
                 stream.Position = 0;
 
@@ -150,10 +109,8 @@ public class SvgTools
         }
     }
 
-    public static SvgSource CreateDefaultPresetView(PresetAttributes settings)
+    public static string CreateDefaultPresetView(PresetAttributes preset)
     {
-        XNamespace ns = "http://www.w3.org/2000/svg";
-
         //fondo blanco etiqueta
         var background = new XElement(ns + "g",
             new XAttribute("id", "background"),
@@ -163,7 +120,7 @@ public class SvgTools
                 new XAttribute("fill", "#FFFFFF")));
         
         //nombre del producto
-        var productName = "NOMBRE\nPRODUCTO"; //todo traducir mensaje o alguna wea
+        var productName = "NOMBRE\nPRODUCTO";
         var name = new XElement(ns+"g",
             new XAttribute("id", "name"),
             new XElement(ns + "text",
@@ -187,10 +144,10 @@ public class SvgTools
                 new XAttribute("text-anchor", "middle")));
             
         //SKU barcode   for preview  
-        var barcodeWidth = settings.TagWidth - 2*settings.SideMargin;
-        var barcodeHeight = 9; //TODO corregir altura del codigo de barras
-        var barcodeX = settings.SideMargin;
-        var barcodeY = settings.TagHeight - barcodeHeight - settings.BottomMargin;
+        var barcodeWidth = preset.TagWidth - 2*preset.SideMargin;
+        var barcodeHeight = preset.BarcodeHeight;
+        var barcodeX = preset.SideMargin;
+        var barcodeY = preset.TagHeight - barcodeHeight - preset.BottomMargin;
         var barcode = new XElement(ns + "g",
             new XAttribute("id", "barcode"),
             new XElement(ns + "rect",
@@ -202,8 +159,8 @@ public class SvgTools
 
         var finalRoot = new XElement(ns + "svg",
             new XAttribute("xmlns", ns.NamespaceName),
-            new XAttribute("width", settings.TagWidth.ToString(CultureInfo.InvariantCulture)+"mm"),
-            new XAttribute("height", settings.TagHeight.ToString(CultureInfo.InvariantCulture)+"mm"),
+            new XAttribute("width", preset.TagWidth.ToString(CultureInfo.InvariantCulture)+"mm"),
+            new XAttribute("height", preset.TagHeight.ToString(CultureInfo.InvariantCulture)+"mm"),
             background,
             barcode,
             name,
@@ -212,6 +169,6 @@ public class SvgTools
         Debug.WriteLine($"SVGTOOLS -> finalpreviewedsvg:\n{finalRoot}");
         
         var svg = new XDocument(finalRoot).ToString();
-        return SvgSource.LoadFromSvg(svg);
+        return svg;
     }
 }

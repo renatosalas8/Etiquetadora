@@ -2,16 +2,17 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading;
+using System.Text;
 using System.Threading.Tasks;
-using Avalonia.Controls;
-using Avalonia.Platform.Storage;
 using Avalonia.Svg.Skia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Etiquetadora.Models;
-using Etiquetadora.Views;
+using Etiquetadora.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Svg;
+using SvgDocument = SvgLib.SvgDocument;
+using SvgImage = Avalonia.Svg.Skia.SvgImage;
 
 namespace Etiquetadora.ViewModels;
 
@@ -22,10 +23,11 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] public partial string? ProductSku { get; set; }
     [ObservableProperty] public partial bool? IsPriceInvalid { get; set; }
     static PresetAttributes _currentPreset = new();
-    private static SvgSource _previewSvg = SvgTools.CreateDefaultPresetView(_currentPreset);
-    [ObservableProperty] public partial SvgImage? BarcodeSvg { get; set; } = new SvgImage {Source = _previewSvg};
+    private static string? renderedSvg = SvgTools.CreateDefaultPresetView(_currentPreset);
+    [ObservableProperty] public partial SvgImage? BarcodeSvg { get; set; } = new() {Source = SvgSource.LoadFromSvg(renderedSvg)};
     
     [ObservableProperty] private PresetAttributes _temporalPreset = new(); //TODO SACAR MEIRDA
+    
     
     [RelayCommand]
     private void NewLabel()
@@ -34,7 +36,7 @@ public partial class MainViewModel : ViewModelBase
         ProductPrice = string.Empty;
         ProductSku = string.Empty;
         IsPriceInvalid = false;
-        BarcodeSvg = new SvgImage(){Source =  _previewSvg};
+        BarcodeSvg = new SvgImage(){Source =  SvgSource.LoadFromSvg(renderedSvg)};
     }
 
     partial void OnProductPriceChanged(string? value)
@@ -75,24 +77,23 @@ public partial class MainViewModel : ViewModelBase
     
     public async Task PreviewBarcode()
     {
-        try
+        try //todo cuando se cambia el texto y no hay mas inputs, se genera un nuevo preview igual. corregir para que solo se cree cuando se borran entradas o es invalido
         {
+            
             if (string.IsNullOrEmpty(ProductPrice) 
                 || string.IsNullOrEmpty(ProductName) 
                 || string.IsNullOrEmpty(ProductSku))
             {
-                var preview = await Task.Run(() => SvgTools.CreateDefaultPresetView(_currentPreset));
+                renderedSvg = await Task.Run(() => SvgTools.CreateDefaultPresetView(_currentPreset));
 
-                BarcodeSvg = new SvgImage() { Source = preview };
+                BarcodeSvg = new SvgImage() { Source = SvgSource.LoadFromSvg(renderedSvg) };
                 return;
             }
 
             if (IsPriceInvalid == false)
             {
-                var renderer = new SvgTools();
-                
-                var render = renderer.RenderTag(ProductSku, ProductPrice, ProductName, _currentPreset);
-                BarcodeSvg = new SvgImage { Source = render };
+                renderedSvg = SvgTools.RenderTag(ProductSku, ProductPrice, ProductName, _currentPreset);
+                BarcodeSvg = new SvgImage { Source = SvgSource.LoadFromSvg(renderedSvg) };
             }
         }
         catch (Exception ex)
@@ -111,60 +112,26 @@ public partial class MainViewModel : ViewModelBase
         _ = PreviewBarcode();
     }
     
-    /*private void LoadPresets()
-    {
-        Presets.Clear();
-        // Cargá tus presets reales acá (desde SettingsService, por ejemplo)
-        Presets.Add(new TagPreset { Id = "1", Name = "Etiqueta Chica" });
-        Presets.Add(new TagPreset { Id = "2", Name = "Etiqueta Grande" });
-
-        // Siempre al final
-        Presets.Add(new TagPreset { Name = "+ Crear nuevo preset", IsCreateNew = true });
-    }
-    
-    partial void OnSelectedPresetChanged(TagPreset? value)
-    {
-        if (value?.IsCreateNew == true)
-        {
-            CreateNewPreset();
-        }
-        else if (value != null)
-        {
-            ApplyPreset(value);
-        }
-    }
-
-    private void CreateNewPreset()
-    {
-        // Abrir diálogo/ventana para crear preset nuevo
-        // Después de crear, LoadPresets() de nuevo y seleccionar el nuevo
-
-        // Importante: resetear la selección para no dejar "Crear nuevo" seleccionado
-        SelectedPreset = null;
-    }
-
-    private void ApplyPreset(TagPreset preset)
-    {
-        // Aplicar los valores del preset a tu estado actual
-    }
-
     [RelayCommand]
-    private void DeletePreset(TagPreset preset)
+    private async Task SaveFile()
     {
-        Presets.Remove(preset);
-        // Guardar cambios en tu SettingsService
-    }*/
-} 
+        try
+        {
+            var app = (App)App.Current!;
+            var filesService = app.Services?.GetService<IFilesService>();
+            if (filesService is null) throw new NullReferenceException("Missing File Service instance.");
 
-/*public partial class TagPreset
-{
-    public string Name { get; set; } = string.Empty;
-    public string Id { get; set; } = string.Empty;
-    public bool IsCreateNew { get; set; }
-    
-    [RelayCommand]
-    private void EditPreset()
-    {
-        // Abrir ventana de edición con los datos de 'preset'
+            var file = await filesService.SaveFileAsync("svg", $"{ProductName}_{ProductSku}");
+            if (file is null) return;
+            
+            var stream = new MemoryStream(Encoding.Default.GetBytes((string)renderedSvg)); //todo barcodesvg que sea string y no la otra wea xd :'v
+            
+            await using var writeStream = await file.OpenWriteAsync();
+            await stream.CopyToAsync(writeStream);
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine(e);
+        }
     }
-}*/
+}

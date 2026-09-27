@@ -1,8 +1,6 @@
 using System;
 using System.IO;
 using Barcoder;
-using Barcoder.Renderer.Svg;
-using Barcoder.Renderers;
 using SvgLib;
 
 namespace Etiquetadora.Models;
