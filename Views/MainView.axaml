@@ -3,11 +3,13 @@
         xmlns:vm="using:Etiquetadora.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:models="clr-namespace:Etiquetadora.Models"
+        xmlns:models="using:Etiquetadora.Models"
+        xmlns:viewModels="clr-namespace:Etiquetadora.ViewModels"
+        xmlns:services="clr-namespace:Etiquetadora.Services"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         Width="800" Height="600" CanResize="False"
         x:Class="Etiquetadora.Views.MainView"
-        x:DataType="vm:MainViewModel"
+        x:DataType="viewModels:MainViewModel"
         Icon="/Assets/logo.ico"
         Title="Etiquetadora">
     
@@ -30,13 +32,11 @@
                     <TextBlock Text="Generadora de Etiquetas :)" FontSize="22"></TextBlock>
                     <TextBox Text="{Binding ProductName}" 
                              PlaceholderText="Nombre del producto"
-                             Background="{DynamicResource TextControlBackground}"
-                             TextChanging="PreviewBarcode">
+                             Background="{DynamicResource TextControlBackground}">
                     </TextBox>
                     <TextBox Text="{Binding ProductPrice, Mode=TwoWay}" 
                              PlaceholderText="Precio"
-                             Classes.InvalidPrice="{Binding IsPriceInvalid}"
-                             TextChanging="PreviewBarcode">
+                             Classes.InvalidPrice="{Binding IsPriceInvalid}">
                     </TextBox>
 
                     <Grid RowDefinitions="28,*" Margin="0,-8,0,0">
@@ -49,16 +49,14 @@
                                  IsEnabled="{Binding !#SKUCheckbox.IsChecked}" 
                                  Text="{Binding ProductSku}" 
                                  PlaceholderText="SKU (máximo 12 números)" 
-                                 MaxLength="12"
-                                 TextChanging="PreviewBarcode">
+                                 MaxLength="12">
                         </TextBox>
                     </Grid>
                 </StackPanel>
                 
                 <StackPanel Spacing="30" VerticalAlignment="Bottom">
-                    <Button Content="Regenerar etiqueta" Command="{Binding PreviewBarcode}"></Button>
-                    <Button Content="Borrar datos" HorizontalAlignment="Stretch" Command="{Binding NewLabelCommand}"></Button>
-                    <Button Content="Listado etiquetas creadas" HorizontalAlignment="Stretch"></Button>
+                    <Button Content="Borrar datos" HorizontalContentAlignment="Center" HorizontalAlignment="Left" Width="100" Command="{Binding NewLabelCommand}" IsVisible="{Binding _canDeleteInputs}"></Button>
+                    <Button Content="Editar ajustes preestablecidos" HorizontalAlignment="Stretch"></Button> <!--todo añadir funcionaliad boton de editar presets-->
                 </StackPanel>
             </Grid>
         </Border>
@@ -69,9 +67,33 @@
                    HorizontalAlignment="Center"
                    VerticalAlignment="Top"/>
         
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+            <ComboBox x:Name="PresetsComboBox"
+                      ItemsSource="{Binding Presets}" 
+                      SelectedItem="{Binding CurrentPreset, Mode=TwoWay}"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Top">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="services:PresetAttributes">
+                        <Grid ColumnDefinitions="Auto,Auto, Auto">
+                            <TextBlock Grid.Column="0" Text="{Binding Name}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <!-- <Button Grid.Column="1" Content="✎" HorizontalAlignment="Center" VerticalAlignment="Center"  -->
+                            <!--         Command="{Binding $parent[Window].((viewModels:MainViewModel)DataContext).EditPresetCommand}" -->
+                            <!--         CommandParameter="{Binding .}"/> -->
+                            <!-- <Button Grid.Column="2" Content="🗑" HorizontalAlignment="Center" VerticalAlignment="Center"  -->
+                            <!--         Command="{Binding $parent[Window].((viewModels:MainViewModel)DataContext).DeletePresetCommand}" -->
+                            <!--         CommandParameter="{Binding .}"/> -->
+                        </Grid>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            
+            <Button Content="+" VerticalAlignment="Top"></Button> <!--todo añadir funcionaliad boton de nueva etiqueta-->
+        </StackPanel>
+        
         <Border Grid.Column="1" Padding="30" >
             <Grid RowDefinitions="Auto,Auto,*, Auto">
-                <TextBlock Text="{Binding TemporalPreset.TagWidth, StringFormat='{}{0} mm'}"
+                <TextBlock Text="{Binding CurrentPreset.TagWidth, StringFormat='{}{0} mm'}"
                            HorizontalAlignment="Center"
                            Grid.Row="1"
                            Foreground="White"/>

@@ -1,16 +1,17 @@
 using System;
 using System.IO;
 using Barcoder;
+using Etiquetadora.Services;
 using SvgLib;
 
 namespace Etiquetadora.Models;
 
-public class BarcodeRenderer : IBarcodeRenderer
+public class BarcodeRenderer
 {
     private readonly PresetAttributes _options;
     private const double MmPerPixel = 3.7795;
 
-    public BarcodeRenderer(PresetAttributes? options = null)
+    public BarcodeRenderer(PresetAttributes? options)
     {
         _options = options ?? new PresetAttributes();
     }

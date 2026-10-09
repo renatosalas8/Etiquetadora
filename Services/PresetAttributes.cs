@@ -1,4 +1,9 @@
-namespace Etiquetadora.Models;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using CommunityToolkit.Mvvm.Input;
+using Etiquetadora.ViewModels;
+
+namespace Etiquetadora.Services;
 
 public class PresetAttributes
 {

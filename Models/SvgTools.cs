@@ -6,10 +6,11 @@ using System.Linq;
 using System.Xml.Linq;
 using Avalonia.Svg.Skia;
 using Barcoder.Code128;
+using Etiquetadora.Services;
 
 namespace Etiquetadora.Models;
 
-public class SvgTools
+public static class SvgTools
 {
     private const double MmPerPixel = 3.7795;
     private static readonly XNamespace ns = "http://www.w3.org/2000/svg";
@@ -17,8 +18,8 @@ public class SvgTools
 
     public static string RenderTag(string barcodeValue, string productPrice, string productName, PresetAttributes preset)
     {
-        //renderizacion y elemento de barcode
-        var renderedBarcode = XDocument.Parse(CreateSvgBarcode(barcodeValue));
+        // ---- barcode
+        var renderedBarcode = XDocument.Parse(CreateSvgBarcode(barcodeValue, preset));
         var barcodeRoot = renderedBarcode.Root;
         var bars = barcodeRoot!.Elements(ns + "line").ToList();
         var barcodeX = (preset.TagWidth*MmPerPixel-_barcodeWidth)/2;
@@ -82,14 +83,14 @@ public class SvgTools
         return svg;
     }
 
-    private static string CreateSvgBarcode(string barcode)
+    private static string CreateSvgBarcode(string barcode, PresetAttributes preset)
     {
         try
         {
             var barcoded = Code128Encoder.Encode(barcode);
             using (var stream = new MemoryStream())
             {
-                var renderer = new BarcodeRenderer();
+                var renderer = new BarcodeRenderer(preset);
                 renderer.Render(barcoded, stream, out _barcodeWidth);
                 
                 stream.Position = 0;

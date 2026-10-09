@@ -17,12 +17,4 @@ public partial class MainView : Window
     {
         InitializeComponent();
     }
-
-    private void PreviewBarcode(object sender, RoutedEventArgs args)
-    {
-        if (DataContext is MainViewModel viewModel)
-        {
-            _ = viewModel.PreviewBarcode();
-        }
-    }
 }
