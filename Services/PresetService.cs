@@ -20,11 +20,10 @@ public class PresetService : IPresetService
         Debug.WriteLine($"PRESETSERVICE -> _presetFilePath: {_presetFilePath}");
         if (!File.Exists(_presetFilePath))
         {
-            CreatePresetFile();
+            _ = CreatePresetFile();
         }
 
-        ObservableCollection<PresetAttributes> presets =
-            JsonSerializer.Deserialize<ObservableCollection<PresetAttributes>>(File.ReadAllText(_presetFilePath));
+        ObservableCollection<PresetAttributes> presets = JsonSerializer.Deserialize<ObservableCollection<PresetAttributes>>(File.ReadAllText(_presetFilePath));
         return presets.FirstOrDefault();
     }
 
@@ -46,25 +45,25 @@ public class PresetService : IPresetService
     
     private readonly string _presetFilePath = Path.Combine(Directory.GetCurrentDirectory(), "presets.json");
 
-    public async void AddPreset(PresetAttributes preset)
+    public async Task AddPreset(PresetAttributes preset)
     {
-        //si no existe el archivo
+        // si no existe el archivo
         if (!File.Exists(_presetFilePath))
         {
             CreatePresetFile();
             return;
         }
-        //todo si esta con archivos
+        // si esta con archivos
         ObservableCollection<PresetAttributes> presetsRead = JsonSerializer.Deserialize<ObservableCollection<PresetAttributes>>(File.ReadAllText(_presetFilePath))!;
         presetsRead.Add(preset);
         await File.WriteAllTextAsync(_presetFilePath, JsonSerializer.Serialize(presetsRead, new JsonSerializerOptions(){ WriteIndented = true }));
     }
 
-    private void CreatePresetFile()
+    private async Task CreatePresetFile()
     {
         var onlyPreset = new PresetAttributes();
         ObservableCollection<PresetAttributes> presets = [onlyPreset];
-        File.WriteAllTextAsync(_presetFilePath, JsonSerializer.Serialize(presets, new JsonSerializerOptions(){ WriteIndented = true }));
+        await File.WriteAllTextAsync(_presetFilePath, JsonSerializer.Serialize(presets, new JsonSerializerOptions(){ WriteIndented = true }));
     }
 
     public async Task SaveFromCollection(ObservableCollection<PresetAttributes> presets)

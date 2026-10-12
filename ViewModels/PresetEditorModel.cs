@@ -5,12 +5,11 @@ namespace Etiquetadora.ViewModels;
 
 public partial class PresetEditorModel : ViewModelBase
 {
-    [ObservableProperty]
-    public partial PresetAttributes Preset { get; set; }
+    [ObservableProperty] private PresetAttributes _preset;
 
     public PresetEditorModel(PresetAttributes preset, out PresetAttributes result)
     {
-        Preset = preset;
-        result = Preset;
+        _preset = preset;
+        result = _preset;
     }
 }

@@ -57,7 +57,7 @@
                         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                             <ComboBox x:Name="PresetsComboBox"
                                       ItemsSource="{Binding Presets}" 
-                                      SelectedItem="{Binding CurrentPreset, Mode=TwoWay}"
+                                      SelectedIndex="{Binding CurrentPresetIndex, Mode=TwoWay}"
                                       VerticalAlignment="Center">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="services:PresetAttributes">

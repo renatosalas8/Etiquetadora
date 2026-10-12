@@ -28,9 +28,9 @@ public partial class MainViewModel : ViewModelBase
     // public string _presetInfo = $"{_currentPreset.TagWidth}mm x {_currentPreset.TagHeight}mm";
     [ObservableProperty] public partial string PresetInfo { get; set; } //get => _presetInfo; set => SetProperty(ref _presetInfo, value);
 
-    private static IPresetService PresetService =>  App.Current.Services.GetService<IPresetService>();
+    private static IPresetService PresetService =>  App.Current?.Services.GetService<IPresetService>();
     [ObservableProperty] private static ObservableCollection<PresetAttributes> _presets = PresetService.LoadPresets();
-    [ObservableProperty] private static PresetAttributes _currentPreset = _presets.FirstOrDefault();
+    [ObservableProperty] public static int _currentPresetIndex = 0;
 
     public bool CanDeleteInputs => !string.IsNullOrWhiteSpace(ProductName) 
                                                           || !string.IsNullOrWhiteSpace(ProductPrice) 
@@ -40,24 +40,24 @@ public partial class MainViewModel : ViewModelBase
                               && !string.IsNullOrWhiteSpace(ProductPrice) 
                               && !string.IsNullOrWhiteSpace(ProductSku);
     
-    private static string PreviewedSvg = SvgTools.CreateDefaultPresetView(_currentPreset ?? new());
+    private static string PreviewedSvg = SvgTools.CreateDefaultPresetView(_presets[_currentPresetIndex]);
     private bool _isPreviewed = true;
-    private static string renderedSvg;
+    private static string? _renderedSvg;
     private bool _changedPreset = false;
 
     public MainViewModel()
     {
-        PresetInfo = $"{_currentPreset.TagWidth}mm x {_currentPreset.TagHeight}mm";
+        PresetInfo = $"{_presets[_currentPresetIndex].TagWidth}mm x {_presets[_currentPresetIndex].TagHeight}mm";
     }
     
     [ObservableProperty]
     public partial SvgImage? BarcodeSvg { get; set; } = new() { Source = SvgSource.LoadFromSvg(PreviewedSvg) };
     
-    partial void OnCurrentPresetChanged(PresetAttributes value)
+    partial void OnCurrentPresetIndexChanged(int value)
     {
         _changedPreset = true;
         _ = PreviewBarcode();
-        PresetInfo = $"{_currentPreset.TagWidth}mm x {_currentPreset.TagHeight}mm";
+        PresetInfo = $"{_presets[_currentPresetIndex].TagWidth}mm x {_presets[_currentPresetIndex].TagHeight}mm";
     }
     
     [RelayCommand]
@@ -119,7 +119,7 @@ public partial class MainViewModel : ViewModelBase
                 if (_changedPreset == true)
                 {
                     _changedPreset = false;
-                    PreviewedSvg = await Task.Run(() => SvgTools.CreateDefaultPresetView(_currentPreset ?? new()));
+                    PreviewedSvg = await Task.Run(() => SvgTools.CreateDefaultPresetView(_presets[_currentPresetIndex]));
                 } 
                 _isPreviewed = true;
                 BarcodeSvg = new SvgImage { Source = SvgSource.LoadFromSvg(PreviewedSvg) };
@@ -128,8 +128,8 @@ public partial class MainViewModel : ViewModelBase
             
             //if rendering a tag
             _isPreviewed = false;
-            renderedSvg = SvgTools.RenderTag(ProductSku, ProductPrice, ProductName, _currentPreset);
-            BarcodeSvg = new SvgImage { Source = SvgSource.LoadFromSvg(renderedSvg) };
+            _renderedSvg = SvgTools.RenderTag(ProductSku, ProductPrice, ProductName, _presets[_currentPresetIndex]);
+            BarcodeSvg = new SvgImage { Source = SvgSource.LoadFromSvg(_renderedSvg) };
         }
         catch (Exception ex)
         {
@@ -158,9 +158,9 @@ public partial class MainViewModel : ViewModelBase
             if (filesService is null) throw new NullReferenceException("Missing File Service instance.");
 
             var file = await filesService.SaveFileAsync("svg", $"{ProductName}_{ProductSku}");
-            if (file is null || string.IsNullOrEmpty(renderedSvg)) return;
+            if (file is null || string.IsNullOrEmpty(_renderedSvg)) return;
             
-            var stream = new MemoryStream(Encoding.Default.GetBytes(renderedSvg));
+            var stream = new MemoryStream(Encoding.Default.GetBytes(_renderedSvg));
             
             await using var writeStream = await file.OpenWriteAsync();
             await stream.CopyToAsync(writeStream);
@@ -176,7 +176,7 @@ public partial class MainViewModel : ViewModelBase
     {
         var window = new PresetList()
         {
-            DataContext = new PresetListModel(Presets,  CurrentPreset, this)
+            DataContext = new PresetListModel(Presets,  CurrentPresetIndex, this)
         };
 
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -195,7 +195,7 @@ public partial class MainViewModel : ViewModelBase
     {
         var window = new PresetEditor()
         {
-            DataContext = new PresetEditorModel(CurrentPreset, out var result)
+            DataContext = new PresetEditorModel(_presets[_currentPresetIndex], out var result)
         };
 
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -204,8 +204,12 @@ public partial class MainViewModel : ViewModelBase
             if (mainW != null) 
             {
                 await window.ShowDialog(mainW);
-                Presets[Presets.IndexOf(CurrentPreset)] = result;
-                CurrentPreset = result;
+                
+                Presets[CurrentPresetIndex] =  result;
+                
+                // var index = Presets.IndexOf(_presets[_currentPresetIndex]);
+                // Presets[index] = result;
+                // // CurrentPreset = result;
                 await PresetService.SaveFromCollection(Presets);
             }
         }
@@ -226,7 +230,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 await window.ShowDialog(mainW);
                 Presets.Add(result);
-                CurrentPreset = Presets.Last();
+                _currentPresetIndex = Presets.Count - 1;
             }
         }
     }

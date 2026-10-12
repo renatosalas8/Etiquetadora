@@ -52,7 +52,7 @@
                 
                 <ComboBox  x:Name="PresetsComboBox"
                            ItemsSource="{Binding Presets}" 
-                           SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                           SelectedIndex="{Binding SelectedPresetIndex, Mode=TwoWay}"
                            HorizontalAlignment="Center">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="services:PresetAttributes">
