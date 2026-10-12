@@ -5,11 +5,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Svg.Skia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Etiquetadora.Models;
 using Etiquetadora.Services;
+using Etiquetadora.Views;
 using Microsoft.Extensions.DependencyInjection;
 using SvgImage = Avalonia.Svg.Skia.SvgImage;
 
@@ -17,41 +20,44 @@ namespace Etiquetadora.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(_canDeleteInputs))] public partial string? ProductName { get; set; }
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(_canDeleteInputs))] public partial string? ProductPrice { get; set; }
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(_canDeleteInputs))] public partial string? ProductSku { get; set; }
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CanDeleteInputs))] [NotifyPropertyChangedFor(nameof(CanSaveTag))] public partial string? ProductName { get; set; }
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CanDeleteInputs))] [NotifyPropertyChangedFor(nameof(CanSaveTag))] public partial string? ProductPrice { get; set; }
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CanDeleteInputs))] [NotifyPropertyChangedFor(nameof(CanSaveTag))] public partial string? ProductSku { get; set; }
     [ObservableProperty] public partial bool IsPriceInvalid { get; set; }
-    
-    [ObservableProperty] private static ObservableCollection<PresetAttributes> presets;
-    [ObservableProperty] private static PresetAttributes _currentPreset;
 
-    public bool _canDeleteInputs => !string.IsNullOrWhiteSpace(ProductName) 
+    // public string _presetInfo = $"{_currentPreset.TagWidth}mm x {_currentPreset.TagHeight}mm";
+    [ObservableProperty] public partial string PresetInfo { get; set; } //get => _presetInfo; set => SetProperty(ref _presetInfo, value);
+
+    private static IPresetService PresetService =>  App.Current.Services.GetService<IPresetService>();
+    [ObservableProperty] private static ObservableCollection<PresetAttributes> _presets = PresetService.LoadPresets();
+    [ObservableProperty] private static PresetAttributes _currentPreset = _presets.FirstOrDefault();
+
+    public bool CanDeleteInputs => !string.IsNullOrWhiteSpace(ProductName) 
                                                           || !string.IsNullOrWhiteSpace(ProductPrice) 
                                                           || !string.IsNullOrWhiteSpace(ProductSku);
     
-    private static string previewedSvg;
-    private bool isPreviewed = true;
+    public bool CanSaveTag => !string.IsNullOrWhiteSpace(ProductName) 
+                              && !string.IsNullOrWhiteSpace(ProductPrice) 
+                              && !string.IsNullOrWhiteSpace(ProductSku);
+    
+    private static string PreviewedSvg = SvgTools.CreateDefaultPresetView(_currentPreset ?? new());
+    private bool _isPreviewed = true;
     private static string renderedSvg;
-    private bool ChangedPreset = false;
-    [ObservableProperty] public partial SvgImage? BarcodeSvg { get; set; }
-
+    private bool _changedPreset = false;
 
     public MainViewModel()
     {
-        var presetService = App.Current.Services.GetService<IPresetService>();
-        if (presetService is null) throw new NullReferenceException("Missing PresetService instance.");
-
-        presets = presetService.LoadPresets();
-        _currentPreset = presetService.GetCurrentPreset();
-
-        previewedSvg = SvgTools.CreateDefaultPresetView(_currentPreset);
-        BarcodeSvg = new() { Source = SvgSource.LoadFromSvg(previewedSvg) };
+        PresetInfo = $"{_currentPreset.TagWidth}mm x {_currentPreset.TagHeight}mm";
     }
+    
+    [ObservableProperty]
+    public partial SvgImage? BarcodeSvg { get; set; } = new() { Source = SvgSource.LoadFromSvg(PreviewedSvg) };
     
     partial void OnCurrentPresetChanged(PresetAttributes value)
     {
-        ChangedPreset = true;
+        _changedPreset = true;
         _ = PreviewBarcode();
+        PresetInfo = $"{_currentPreset.TagWidth}mm x {_currentPreset.TagHeight}mm";
     }
     
     [RelayCommand]
@@ -101,7 +107,6 @@ public partial class MainViewModel : ViewModelBase
         _ = PreviewBarcode();
     }
     
-    [RelayCommand]
     private async Task PreviewBarcode()
     {
         try
@@ -111,18 +116,18 @@ public partial class MainViewModel : ViewModelBase
                 || string.IsNullOrEmpty(ProductSku)
                 || IsPriceInvalid == true)
             {
-                if (ChangedPreset == true)
+                if (_changedPreset == true)
                 {
-                    ChangedPreset = false;
-                    previewedSvg = await Task.Run(() => SvgTools.CreateDefaultPresetView(_currentPreset));
+                    _changedPreset = false;
+                    PreviewedSvg = await Task.Run(() => SvgTools.CreateDefaultPresetView(_currentPreset ?? new()));
                 } 
-                isPreviewed = true;
-                BarcodeSvg = new SvgImage { Source = SvgSource.LoadFromSvg(previewedSvg) };
+                _isPreviewed = true;
+                BarcodeSvg = new SvgImage { Source = SvgSource.LoadFromSvg(PreviewedSvg) };
                 return;
             }
             
             //if rendering a tag
-            isPreviewed = false;
+            _isPreviewed = false;
             renderedSvg = SvgTools.RenderTag(ProductSku, ProductPrice, ProductName, _currentPreset);
             BarcodeSvg = new SvgImage { Source = SvgSource.LoadFromSvg(renderedSvg) };
         }
@@ -147,7 +152,7 @@ public partial class MainViewModel : ViewModelBase
     {
         try
         {
-            if (isPreviewed == true) return;
+            if (_isPreviewed == true) return;
             var app = (App)App.Current!;
             var filesService = app.Services?.GetService<IFilesService>();
             if (filesService is null) throw new NullReferenceException("Missing File Service instance.");
@@ -163,6 +168,66 @@ public partial class MainViewModel : ViewModelBase
         catch (Exception e)
         {
             Debug.WriteLine(e);
+        }
+    }
+    
+    [RelayCommand]
+    private async Task ShowPresetsWindow()
+    {
+        var window = new PresetList()
+        {
+            DataContext = new PresetListModel(Presets,  CurrentPreset, this)
+        };
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var mainW = desktop.MainWindow; 
+            if (mainW != null) 
+            {
+                await window.ShowDialog(mainW);
+                await PresetService.SaveFromCollection(Presets);
+            }
+        }
+    }
+
+    [RelayCommand]
+    private async Task EditPresetWindow()
+    {
+        var window = new PresetEditor()
+        {
+            DataContext = new PresetEditorModel(CurrentPreset, out var result)
+        };
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var mainW = desktop.MainWindow; 
+            if (mainW != null) 
+            {
+                await window.ShowDialog(mainW);
+                Presets[Presets.IndexOf(CurrentPreset)] = result;
+                CurrentPreset = result;
+                await PresetService.SaveFromCollection(Presets);
+            }
+        }
+    }
+
+    [RelayCommand]
+    private async Task NewPresetWindow()
+    {
+        var window = new PresetEditor()
+        {
+            DataContext = new PresetEditorModel(new(){ Name = "Nueva plantilla"}, out var result)
+        };
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var mainW = desktop.MainWindow; 
+            if (mainW != null) 
+            {
+                await window.ShowDialog(mainW);
+                Presets.Add(result);
+                CurrentPreset = Presets.Last();
+            }
         }
     }
 }

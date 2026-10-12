@@ -8,5 +8,6 @@ public interface IPresetService
 {
     public PresetAttributes GetCurrentPreset();
     public ObservableCollection<PresetAttributes> LoadPresets();
-    public void SavePreset(PresetAttributes preset);
+    public Task SaveFromCollection(ObservableCollection<PresetAttributes> presets);
+    public void AddPreset(PresetAttributes preset);
 }

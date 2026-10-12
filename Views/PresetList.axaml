@@ -1,0 +1,91 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Etiquetadora.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:Etiquetadora.Models"
+        xmlns:viewModels="clr-namespace:Etiquetadora.ViewModels"
+        xmlns:services="clr-namespace:Etiquetadora.Services"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="550"
+        Width="450" Height="550" CanResize="False"
+        x:Class="Etiquetadora.Views.PresetList"
+        x:DataType="viewModels:PresetListModel"
+        Title="Lista de plantillas"
+        Background="{DynamicResource MainBackground}">
+    
+    <Design.DataContext>
+        <vm:MainViewModel/>
+    </Design.DataContext>
+    
+    <!-- <Grid ColumnDefinitions="210,*"> -->
+    <!--     <StackPanel Grid.Column="0" Orientation="Vertical"> -->
+    <!--         <TextBlock Text="Listado de presets"/> -->
+    <!--         <ListBox SelectedItem="{Binding SelectedPreset}" ItemsSource="{Binding Presets}"> -->
+    <!--             <ListBox.ItemTemplate> -->
+    <!--                 <DataTemplate> -->
+    <!--                     <TextBlock Text="{Binding Name}"/> -->
+    <!--                 </DataTemplate> -->
+    <!--             </ListBox.ItemTemplate> -->
+    <!--         </ListBox> -->
+    <!--     </StackPanel> -->
+    <!--      -->
+    <!--     <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center"> -->
+    <!--         <Button Content="Borrar"  -->
+    <!--                 Command="{Binding DeleteSelectedPresetCommand}" -->
+    <!--                 HorizontalAlignment="Center" -->
+    <!--                 IsEnabled="{Binding CanDelete}"/> -->
+    <!--         <Button Content="Nuevo" -->
+    <!--                 Command="{Binding NewPresetCommand}" -->
+    <!--                 HorizontalAlignment="Center"/> -->
+    <!--         <Button Content="Editar" -->
+    <!--                 HorizontalAlignment="Center" -->
+    <!--                 Command="{Binding EditPresetCommand}"/> -->
+    <!--     </StackPanel> -->
+    <!-- </Grid> -->
+    
+    <Border Padding="20">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                <Button Command="{Binding PreviousPresetCommand}">
+                    <PathIcon Data="{StaticResource previous_fill}"></PathIcon>
+                </Button>
+                
+                <ComboBox  x:Name="PresetsComboBox"
+                           ItemsSource="{Binding Presets}" 
+                           SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                           HorizontalAlignment="Center">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="services:PresetAttributes">
+                            <Grid ColumnDefinitions="Auto,Auto, Auto">
+                                <TextBlock Grid.Column="0" Text="{Binding Name}" 
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                
+                <Button Command="{Binding NextPresetCommand}">
+                    <PathIcon Data="{StaticResource next_fill}"></PathIcon>
+                </Button>
+            </StackPanel>
+            
+            <Image  Grid.Row="1" Source="{Binding PreviewedSvg}"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"
+                   Stretch="Uniform"
+            />
+            
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                <Button Content="Borrar"
+                        Command="{Binding DeleteSelectedPresetCommand}"
+                        HorizontalAlignment="Center"/>
+                <Button Content="Nuevo"
+                        Command="{Binding NewPresetCommand}"
+                        HorizontalAlignment="Center"/>
+                <Button Content="Editar"
+                        HorizontalAlignment="Center"
+                        Command="{Binding EditPresetCommand}"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

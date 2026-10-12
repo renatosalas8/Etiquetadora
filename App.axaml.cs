@@ -30,7 +30,7 @@ public partial class App : Application
             
             var services = new ServiceCollection();
             services.AddSingleton<IFilesService>(sp => new FilesService(mainWindow));
-            services.AddSingleton<IPresetService>(sp => new PresetService(mainWindow));
+            services.AddSingleton<IPresetService>(sp => new PresetService());
             services.AddTransient<MainViewModel>();
             Services = services.BuildServiceProvider();
             mainWindow.DataContext = Services.GetRequiredService<MainViewModel>();

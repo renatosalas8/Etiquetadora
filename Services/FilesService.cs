@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
@@ -31,6 +32,7 @@ public class FilesService : IFilesService
 
     public async Task<IStorageFile?> SaveFileAsync(string fileType, string fileName)
     {
+        var storageProvicer = _target.StorageProvider;
         return await _target.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions()
         {
             DefaultExtension = $"{fileType}",
@@ -40,7 +42,8 @@ public class FilesService : IFilesService
             //     AppleUniformTypeIdentifiers = [fileType]
             // },
             FileTypeChoices = [Svg, /*FilePickerFileTypes.Pdf*/], //todo implementar guardar como pdf
-            SuggestedFileName = $"{fileName}.{fileType}"
+            SuggestedFileName = $"{fileName}.{fileType}",
+            SuggestedStartLocation = await storageProvicer.TryGetWellKnownFolderAsync(WellKnownFolder.Documents)
         });
     }
 }

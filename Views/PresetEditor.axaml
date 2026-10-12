@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Etiquetadora.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:Etiquetadora.Models"
+        xmlns:viewModels="clr-namespace:Etiquetadora.ViewModels"
+        xmlns:services="clr-namespace:Etiquetadora.Services"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="550"
+        Width="450" Height="550" CanResize="False"
+        x:Class="Etiquetadora.Views.PresetEditor"
+        x:DataType="viewModels:PresetEditorModel"
+        Title="Editando plantilla...">
+        
+        <Design.DataContext>
+                <vm:PresetEditorModel/>
+        </Design.DataContext>
+        
+        <!-- <Border Margin="20"> -->
+        <!--         <StackPanel Orientation="Vertical"> -->
+        <!--                 <TextBlock Text="Nombre"/> -->
+        <!--                 <TextBox Text="{Binding Preset.Name}"></TextBox> -->
+        <!--                  -->
+        <!--                 <TextBlock Text="Ancho etiqueta"/> -->
+        <!--                 <TextBox Text="{Binding Preset.TagWidth}"></TextBox> -->
+        <!--                  -->
+        <!--                 <TextBlock Text="Alto etiqueta"/> -->
+        <!--                 <TextBox Text="{Binding Preset.TagHeight}"></TextBox> -->
+        <!--                  -->
+        <!--                 <TextBlock Text="Altura del código de barras"/> -->
+        <!--                 <TextBox Text="{Binding Preset.BarcodeHeight}"></TextBox> -->
+        <!--                  -->
+        <!--                 <TextBlock Text="Márgenes laterales"/> -->
+        <!--                 <TextBox Text="{Binding Preset.SideMargin}"></TextBox> -->
+        <!--                  -->
+        <!--                 <TextBlock Text="Margen inferior"/> -->
+        <!--                 <TextBox Text="{Binding Preset.BottomMargin}"></TextBox> -->
+        <!--         </StackPanel> -->
+        <!-- </Border> -->
+        
+        <Border Margin="20" Background="Aqua">
+                <Grid>
+                        <Viewbox Stretch="Uniform">
+                                <Grid>
+                                        <Rectangle Width="{Binding Preset.TagWidth}" Height="{Binding Preset.TagHeight}" Fill="White"></Rectangle>
+                                
+                                        <Rectangle Width="{Binding Preset.BarcodeWidth}" Height="{Binding Preset.BarcodeHeight}" Fill="Black"></Rectangle>
+                                </Grid>
+                        </Viewbox>
+                        
+                        
+                </Grid>
+        </Border>
+</Window>
